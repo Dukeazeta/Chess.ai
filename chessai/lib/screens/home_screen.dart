@@ -11,7 +11,7 @@ class HomeScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     final captureService = ScreenCaptureService();
     
-    return captureService.captureScreen(
+    return captureService.wrapWithScreenshotCapture(
       Scaffold(
         appBar: AppBar(
           title: const Text('Chess.ai Screen Capture'),

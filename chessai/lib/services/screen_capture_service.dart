@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'dart:io';
+import 'dart:typed_data';
 import 'package:flutter/material.dart';
 import 'package:flutter_foreground_service/flutter_foreground_service.dart';
 import 'package:path_provider/path_provider.dart';
@@ -11,29 +12,48 @@ class ScreenCaptureService {
   factory ScreenCaptureService() => _instance;
   ScreenCaptureService._internal();
 
-final ScreenshotController _screenshotController = ScreenshotController();
+  final ScreenshotController _screenshotController = ScreenshotController();
   bool _isCapturing = false;
   StreamController<String>? _captureStreamController;
   Stream<String>? captureStream;
+  Timer? _captureTimer;
 
   Future<bool> requestPermissions() async {
     Map<Permission, PermissionStatus> statuses = await [
       Permission.storage,
+      Permission.manageExternalStorage,  // Add required Android 11+ permission
+      Permission.systemAlertWindow,      // Required for foreground service
     ].request();
 
     return statuses.values.every((status) => status.isGranted);
   }
 
   Future<void> startForegroundService() async {
-    await FlutterForegroundService.startForegroundService(
-      title: "Screen Capture",
-      content: "Capturing screen for analysis",
-      iconName: "ic_launcher",
+    await ForegroundService.setup(
+      androidNotification: AndroidNotification(
+        channelId: 'screen_capture',
+        channelName: 'Screen Capture Service',
+        channelDescription: 'Service for capturing screen content',
+        priority: AndroidNotificationPriority.DEFAULT,
+        icon: 'ic_launcher',
+      ),
+      iosNotification: const IOSNotification(),
+      foregroundServiceOptions: const ForegroundServiceOptions(),
+    );
+    
+    await FlutterForegroundService.start(
+      notificationTitle: 'Chess.ai',
+      notificationText: 'Capturing screen for analysis',
     );
   }
-
   Future<void> stopForegroundService() async {
-    await FlutterForegroundService.stopForegroundService();
+    await FlutterForegroundService.stop();
+  }
+  Widget wrapWithScreenshotCapture(Widget child) {
+    return Screenshot(
+      controller: _screenshotController,
+      child: child,
+    );
   }
 
   Future<bool> startCapture(BuildContext context) async {
@@ -48,13 +68,6 @@ final ScreenshotController _screenshotController = ScreenshotController();
     _captureStreamController = StreamController<String>.broadcast();
     captureStream = _captureStreamController?.stream;
 
-    // Start media projection
-    bool started = await _mediaProjection.startProjection();
-    if (!started) {
-      await stopForegroundService();
-      return false;
-    }
-
     _isCapturing = true;
     _startCaptureLoop();
     return true;
@@ -63,7 +76,7 @@ final ScreenshotController _screenshotController = ScreenshotController();
   void _startCaptureLoop() async {
     if (!_isCapturing) return;
 
-    Timer.periodic(const Duration(milliseconds: 500), (timer) async {
+    _captureTimer = Timer.periodic(const Duration(milliseconds: 500), (timer) async {
       if (!_isCapturing) {
         timer.cancel();
         return;
@@ -74,8 +87,12 @@ final ScreenshotController _screenshotController = ScreenshotController();
         final timestamp = DateTime.now().millisecondsSinceEpoch;
         final path = '${directory.path}/screen_$timestamp.jpg';
 
-        await _mediaProjection.captureScreen(path);
-        _captureStreamController?.add(path);
+        final Uint8List? imageBytes = await _screenshotController.capture();
+        if (imageBytes != null) {
+          final File file = File(path);
+          await file.writeAsBytes(imageBytes);
+          _captureStreamController?.add(path);
+        }
       } catch (e) {
         debugPrint('Error capturing screen: $e');
       }
@@ -86,7 +103,8 @@ final ScreenshotController _screenshotController = ScreenshotController();
     if (!_isCapturing) return;
 
     _isCapturing = false;
-    await _mediaProjection.stopProjection();
+    _captureTimer?.cancel();
+    _captureTimer = null;
     await stopForegroundService();
     await _captureStreamController?.close();
     _captureStreamController = null;
