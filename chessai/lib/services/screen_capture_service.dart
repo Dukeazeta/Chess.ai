@@ -2,16 +2,16 @@ import 'dart:async';
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter_foreground_service/flutter_foreground_service.dart';
-import 'package:flutter_media_projection/flutter_media_projection.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:permission_handler/permission_handler.dart';
+import 'package:screenshot/screenshot.dart';
 
 class ScreenCaptureService {
   static final ScreenCaptureService _instance = ScreenCaptureService._internal();
   factory ScreenCaptureService() => _instance;
   ScreenCaptureService._internal();
 
-  final FlutterMediaProjection _mediaProjection = FlutterMediaProjection();
+final ScreenshotController _screenshotController = ScreenshotController();
   bool _isCapturing = false;
   StreamController<String>? _captureStreamController;
   Stream<String>? captureStream;
