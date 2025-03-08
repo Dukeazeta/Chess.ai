@@ -2,7 +2,7 @@ import 'dart:async';
 import 'dart:io';
 import 'dart:typed_data';
 import 'package:flutter/material.dart';
-import 'package:flutter_foreground_service/flutter_foreground_service.dart';
+import 'package:flutter_foreground_task/flutter_foreground_task.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:screenshot/screenshot.dart';
@@ -22,33 +22,49 @@ class ScreenCaptureService {
     Map<Permission, PermissionStatus> statuses = await [
       Permission.storage,
       Permission.manageExternalStorage,  // Add required Android 11+ permission
-      Permission.systemAlertWindow,      // Required for foreground service
     ].request();
 
     return statuses.values.every((status) => status.isGranted);
   }
-
+  
   Future<void> startForegroundService() async {
-    await ForegroundService.setup(
-      androidNotification: AndroidNotification(
+    // Initialize foreground task
+FlutterForegroundTask.init(
+      androidNotificationOptions: AndroidNotificationOptions(
         channelId: 'screen_capture',
         channelName: 'Screen Capture Service',
         channelDescription: 'Service for capturing screen content',
-        priority: AndroidNotificationPriority.DEFAULT,
-        icon: 'ic_launcher',
+        channelImportance: NotificationChannelImportance.LOW,
+        priority: NotificationPriority.LOW,
+        iconData: const NotificationIconData(
+          resType: ResourceType.mipmap,
+          resPrefix: ResourcePrefix.ic,
+          name: 'launcher',
+        ),
       ),
-      iosNotification: const IOSNotification(),
-      foregroundServiceOptions: const ForegroundServiceOptions(),
+      iosNotificationOptions: const IOSNotificationOptions(
+        showNotification: true,
+        playSound: false,
+      ),
+      foregroundTaskOptions: const ForegroundTaskOptions(
+        interval: 1000,
+        autoRunOnBoot: false,
+        allowWifiLock: false,
+      ),
     );
     
-    await FlutterForegroundService.start(
+    // Start the foreground service
+    await FlutterForegroundTask.startService(
       notificationTitle: 'Chess.ai',
       notificationText: 'Capturing screen for analysis',
+      callback: startCallback,
     );
   }
+  
   Future<void> stopForegroundService() async {
-    await FlutterForegroundService.stop();
+    await FlutterForegroundTask.stopService();
   }
+  
   Widget wrapWithScreenshotCapture(Widget child) {
     return Screenshot(
       controller: _screenshotController,
@@ -111,4 +127,33 @@ class ScreenCaptureService {
   }
 
   bool get isCapturing => _isCapturing;
+}
+
+// This is the callback function that will be executed when the foreground service is started
+@pragma('vm:entry-point')
+void startCallback() {
+  FlutterForegroundTask.setTaskHandler(ScreenCaptureTaskHandler());
+}
+
+// Task handler for the foreground service
+class ScreenCaptureTaskHandler extends TaskHandler {
+  @override
+  Future<void> onStart(DateTime timestamp, dynamic sendPort) async {
+    // Initialize any resources needed for the foreground task
+  }
+
+  @override
+  Future<void> onEvent(DateTime timestamp, dynamic sendPort) async {
+    // This is called periodically based on the interval set in foregroundTaskOptions
+  }
+
+  @override
+  Future<void> onDestroy(DateTime timestamp, dynamic sendPort) async {
+    // Clean up resources when the service is stopped
+  }
+
+  @override
+  void onButtonPressed(String id) {
+    // Handle notification button presses if any
+  }
 }
