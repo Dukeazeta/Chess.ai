@@ -1,8 +1,18 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_overlay_window/flutter_overlay_window.dart';
 import 'screens/home_screen.dart';
+import 'overlay_entry.dart';
 
-void main() {
-  runApp(const MyApp());
+void main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+
+  final bool overlayMode = await FlutterOverlayWindow.isActive();
+
+  if (overlayMode) {
+    runApp(const MaterialApp(home: ChessOverlayWidget()));
+  } else {
+    runApp(const MyApp());
+  }
 }
 
 class MyApp extends StatelessWidget {
