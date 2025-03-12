@@ -69,9 +69,10 @@ class CustomCircularButton extends StatelessWidget {
         Text(
           label,
           style: TextStyle(
+            fontFamily: 'ClashDisplay',  // Using ClashDisplay font
+            fontWeight: FontWeight.bold,
             color: color,
             fontSize: 18,
-            fontWeight: FontWeight.bold,
             letterSpacing: 1.5,
             shadows: [
               Shadow(
