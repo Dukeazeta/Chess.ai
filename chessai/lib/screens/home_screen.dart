@@ -49,11 +49,9 @@ class HomeScreen extends StatelessWidget {
                       color: Colors.white,
                     ),
                     color: Colors.red.shade600,
-                    onPressed: provider.isVisible 
-                        ? () {
-                            provider.hide();
-                          } as VoidCallback
-                        : () => null,
+                    onPressed: provider.isVisible
+                        ? () => provider.hide()
+                        : () {}, // Changed from null to empty function
                     label: 'STOP',
                   ),
                 ],
