@@ -1,18 +1,11 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_overlay_window/flutter_overlay_window.dart';
+import 'package:provider/provider.dart';
 import 'screens/home_screen.dart';
-import 'overlay_entry.dart';
+import 'providers/floating_window_provider.dart';
 
-void main() async {
+void main() {
   WidgetsFlutterBinding.ensureInitialized();
-
-  final bool overlayMode = await FlutterOverlayWindow.isActive();
-
-  if (overlayMode) {
-    runApp(const MaterialApp(home: ChessOverlayWidget()));
-  } else {
-    runApp(const MyApp());
-  }
+  runApp(const MyApp());
 }
 
 class MyApp extends StatelessWidget {
@@ -20,9 +13,12 @@ class MyApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return const MaterialApp(
-      debugShowCheckedModeBanner: false,
-      home: HomeScreen(),
+    return ChangeNotifierProvider(
+      create: (context) => FloatingWindowProvider(),
+      child: const MaterialApp(
+        debugShowCheckedModeBanner: false,
+        home: HomeScreen(),
+      ),
     );
   }
 }

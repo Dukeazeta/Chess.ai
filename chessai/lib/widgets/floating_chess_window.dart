@@ -1,31 +1,25 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_overlay_window/flutter_overlay_window.dart';
+import 'package:provider/provider.dart';
+import '../providers/floating_window_provider.dart';
 
-class FloatingChessWindow extends StatefulWidget {
+class FloatingChessWindow extends StatelessWidget {
   const FloatingChessWindow({super.key});
-
-  @override
-  State<FloatingChessWindow> createState() => _FloatingChessWindowState();
-}
-
-class _FloatingChessWindowState extends State<FloatingChessWindow> {
-  Offset _position = const Offset(100, 100);
 
   @override
   Widget build(BuildContext context) {
     final size = MediaQuery.of(context).size;
-
+    final provider = Provider.of<FloatingWindowProvider>(context);
+    
     return Positioned(
-      left: _position.dx,
-      top: _position.dy,
+      left: provider.position.dx,
+      top: provider.position.dy,
       child: GestureDetector(
         onPanUpdate: (details) {
-          setState(() {
-            _position = Offset(
-              (_position.dx + details.delta.dx).clamp(0, size.width - 50),
-              (_position.dy + details.delta.dy).clamp(0, size.height - 50),
-            );
-          });
+          final newPosition = Offset(
+            (provider.position.dx + details.delta.dx).clamp(0, size.width - 50),
+            (provider.position.dy + details.delta.dy).clamp(0, size.height - 50),
+          );
+          provider.updatePosition(newPosition);
         },
         child: Container(
           width: 50,
